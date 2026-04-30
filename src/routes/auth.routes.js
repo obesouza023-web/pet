@@ -133,13 +133,13 @@ router.post('/login', authLimiter, [
 
     const user = await prisma.user.findUnique({ where: { email } });
 
-    // Sempre comparar hash mesmo se usuário não existe (evita timing attack)
-    const senhaFake = '$2a$12$fakehashfakehashfakehashfakehashfakehashfakehash';
-    const senhaValida = user
-      ? await bcrypt.compare(senha, user.senhaHash || senhaFake)
-      : await bcrypt.compare(senha, senhaFake);
+    if (!user || !user.senhaHash) {
+      return res.status(401).json({ error: 'E-mail ou senha incorretos.' });
+    }
 
-    if (!user || !senhaValida) {
+    const senhaValida = await bcrypt.compare(senha, user.senhaHash);
+
+    if (!senhaValida) {
       return res.status(401).json({ error: 'E-mail ou senha incorretos.' });
     }
 
@@ -158,7 +158,7 @@ router.post('/login', authLimiter, [
       token,
     });
   } catch (error) {
-    console.error(error);
+    console.error('LOGIN ERROR:', error);
     res.status(500).json({ error: 'Erro interno.' });
   }
 });
