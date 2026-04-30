@@ -158,8 +158,8 @@ router.post('/login', authLimiter, [
       token,
     });
   } catch (error) {
-    console.error('LOGIN ERROR:', error);
-    res.status(500).json({ error: 'Erro interno.' });
+    console.error('LOGIN ERROR:', error.message, error.stack);
+    res.status(500).json({ error: 'Erro interno.', detail: error.message });
   }
 });
 
