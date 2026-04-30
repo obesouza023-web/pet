@@ -41,6 +41,9 @@ app.use('/api/', rateLimit({
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
+// Servir arquivos estáticos (uploads)
+app.use('/uploads', express.static('uploads'));
+
 // Logs apenas em desenvolvimento
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
@@ -51,6 +54,7 @@ app.disable('x-powered-by');
 
 // ── Rotas ─────────────────────────────────────────────────────
 app.use('/api/auth', require('./routes/auth.routes'));
+app.use('/api/animais', require('./routes/animais.routes'));
 app.use('/api/animals', require('./routes/animals.routes'));
 app.use('/api/adoptions', require('./routes/adoptions.routes'));
 app.use('/api/calls', require('./routes/calls.routes'));
