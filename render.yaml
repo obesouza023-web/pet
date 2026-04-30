@@ -1,18 +1,29 @@
 services:
   - type: web
-    name: causaanimal-backend
-    env: node
+    name: causa-animal-backend
+    runtime: node
+    region: oregon
     plan: free
+    branch: main
     buildCommand: npm install && npx prisma generate && npx prisma migrate deploy
-    startCommand: node src/server.js
+    startCommand: npm start
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 3001
       - key: DATABASE_URL
-        sync: false
+        value: postgresql://postgres.fkxhemwdeyrvlsinpmtr:Chatuba12%40.@aws-1-us-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true
+      - key: DIRECT_URL
+        value: postgresql://postgres.fkxhemwdeyrvlsinpmtr:Chatuba12%40.@aws-1-us-west-2.pooler.supabase.com:5432/postgres
       - key: JWT_SECRET
-        sync: false
+        value: a8f3d2e1c9b7a6f5e4d3c2b1a0f9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d9c8b7a6f5e4d3
       - key: JWT_EXPIRES_IN
         value: 7d
+      - key: ADMIN_EMAIL
+        value: admin@causaanimal.com
+      - key: ADMIN_SENHA
+        value: CausaAnimal@2024!
       - key: FRONTEND_URL
-        sync: false
+        value: https://build-pi-rose.vercel.app
