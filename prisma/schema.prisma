@@ -1,0 +1,384 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TipoUsuario {
+  cidadao
+  protetor
+  veterinario
+  empresa
+  admin
+}
+
+enum StatusUsuario {
+  ativo
+  inativo
+  bloqueado
+}
+
+enum Especie {
+  cachorro
+  gato
+  outro
+}
+
+enum Sexo {
+  macho
+  femea
+}
+
+enum Porte {
+  pequeno
+  medio
+  grande
+}
+
+enum StatusAnimal {
+  disponivel
+  em_tratamento
+  lar_temporario
+  em_adocao
+  adotado
+  obito
+}
+
+enum TipoMoradia {
+  casa
+  apartamento
+}
+
+enum StatusAdocao {
+  enviado
+  em_analise
+  aprovado
+  reprovado
+  finalizado
+}
+
+enum TipoChamado {
+  abandonado
+  machucado
+  atropelado
+  preso
+  maus_tratos
+  agressivo
+  ninhada
+  risco
+  resgate
+  veterinario
+}
+
+enum Urgencia {
+  baixa
+  media
+  alta
+  emergencia
+}
+
+enum StatusChamado {
+  recebido
+  em_analise
+  equipe_acionada
+  em_deslocamento
+  resgatado
+  veterinario
+  finalizado
+  nao_localizado
+  cancelado
+}
+
+enum StatusCastracao {
+  recebido
+  em_fila
+  agendado
+  confirmado
+  realizado
+  nao_compareceu
+  cancelado
+}
+
+enum TipoDoacao {
+  dinheiro
+  racao
+  medicamento
+  cobertor
+  casinha
+  transporte
+  lar_temporario
+  voluntario
+}
+
+enum StatusDoacao {
+  pendente
+  confirmado
+  recebido
+  retirado
+}
+
+enum TipoCampanha {
+  vacinacao
+  castracao
+  adocao
+  arrecadacao
+}
+
+enum StatusCampanha {
+  ativa
+  encerrada
+  cancelada
+}
+
+enum StatusLarTemporario {
+  disponivel
+  ocupado
+  inativo
+}
+
+model User {
+  id              String         @id @default(uuid())
+  nomeCompleto    String         @map("nome_completo")
+  email           String         @unique
+  senhaHash       String?        @map("senha_hash")
+  cpf             String?        @unique
+  telefone        String
+  whatsapp        String?
+  endereco        Json?
+  fotoPerfilUrl   String?        @map("foto_perfil_url")
+  tipoUsuario     TipoUsuario    @default(cidadao) @map("tipo_usuario")
+  status          StatusUsuario  @default(ativo)
+  googleId        String?        @unique @map("google_id")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  animais         Animal[]       @relation("ResponsavelAnimal")
+  adocoes         Adoption[]
+  chamados        Call[]         @relation("DenuncianteChamado")
+  chamadosResp    Call[]         @relation("ResponsavelChamado")
+  castracoes      Castration[]
+  veterinario     Veterinarian?
+  doacoes         Donation[]
+  larTemporario   TemporaryHome?
+  logs            ActivityLog[]
+
+  @@map("users")
+}
+
+model Animal {
+  id                  String        @id @default(uuid())
+  nome                String
+  especie             Especie
+  raca                String?
+  sexo                Sexo
+  idadeAproximada     String        @map("idade_aproximada")
+  porte               Porte
+  peso                Float?
+  cor                 String?
+  fotos               Json          @default("[]")
+  videos              Json          @default("[]")
+  descricao           String?       @db.Text
+  historia            String?       @db.Text
+  temperamento        Json?
+  saude               Json?
+  vacinas             Json          @default("[]")
+  castrado            Boolean       @default(false)
+  vermifugado         Boolean       @default(false)
+  compativelCriancas  Boolean       @default(true) @map("compativel_criancas")
+  compativelAnimais   Boolean       @default(true) @map("compativel_animais")
+  status              StatusAnimal  @default(disponivel)
+  localizacao         Json?
+  responsavelId       String        @map("responsavel_id")
+  clinicaId           String?       @map("clinica_id")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  responsavel         User          @relation("ResponsavelAnimal", fields: [responsavelId], references: [id])
+  clinica             Veterinarian? @relation(fields: [clinicaId], references: [id])
+  adocoes             Adoption[]
+  chamados            Call[]
+
+  @@map("animals")
+}
+
+model Adoption {
+  id                  String        @id @default(uuid())
+  animalId            String        @map("animal_id")
+  usuarioId           String        @map("usuario_id")
+  tipoMoradia         TipoMoradia   @map("tipo_moradia")
+  temQuintal          Boolean       @map("tem_quintal")
+  temTelaProtecao     Boolean       @map("tem_tela_protecao")
+  temOutrosAnimais    Boolean       @map("tem_outros_animais")
+  jaAdotouAntes       Boolean       @map("ja_adotou_antes")
+  motivoAdocao        String        @db.Text @map("motivo_adocao")
+  aceitaVisita        Boolean       @map("aceita_visita")
+  aceitaTermo         Boolean       @map("aceita_termo")
+  status              StatusAdocao  @default(enviado)
+  observacoesInternas String?       @db.Text @map("observacoes_internas")
+  dataAprovacao       DateTime?     @map("data_aprovacao")
+  dataFinalizacao     DateTime?     @map("data_finalizacao")
+  termoPdfUrl         String?       @map("termo_pdf_url")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  animal              Animal        @relation(fields: [animalId], references: [id])
+  usuario             User          @relation(fields: [usuarioId], references: [id])
+
+  @@map("adoptions")
+}
+
+model Call {
+  id                  String        @id @default(uuid())
+  protocolo           String        @unique
+  tipo                TipoChamado
+  descricao           String        @db.Text
+  fotos               Json          @default("[]")
+  videos              Json          @default("[]")
+  localizacao         Json
+  urgencia            Urgencia
+  denuncianteId       String?       @map("denunciante_id")
+  anonimo             Boolean       @default(false)
+  contatoDenunciante  Json?         @map("contato_denunciante")
+  status              StatusChamado @default(recebido)
+  responsavelId       String?       @map("responsavel_id")
+  animalGeradoId      String?       @unique @map("animal_gerado_id")
+  historico           Json          @default("[]")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  denunciante         User?         @relation("DenuncianteChamado", fields: [denuncianteId], references: [id])
+  responsavel         User?         @relation("ResponsavelChamado", fields: [responsavelId], references: [id])
+  animalGerado        Animal?       @relation(fields: [animalGeradoId], references: [id])
+
+  @@map("calls")
+}
+
+model Castration {
+  id                  String          @id @default(uuid())
+  usuarioId           String          @map("usuario_id")
+  animalProprio       Boolean         @default(true) @map("animal_proprio")
+  quantidadeAnimais   Int             @map("quantidade_animais")
+  dadosAnimais        Json            @map("dados_animais")
+  endereco            Json
+  preferenciaData     DateTime?       @map("preferencia_data")
+  status              StatusCastracao @default(recebido)
+  dataAgendada        DateTime?       @map("data_agendada")
+  dataRealizada       DateTime?       @map("data_realizada")
+  clinicaId           String?         @map("clinica_id")
+  mutiraoId           String?         @map("mutirao_id")
+  observacoes         String?         @db.Text
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  usuario             User            @relation(fields: [usuarioId], references: [id])
+  clinica             Veterinarian?   @relation(fields: [clinicaId], references: [id])
+  mutirao             Campaign?       @relation(fields: [mutiraoId], references: [id])
+
+  @@map("castrations")
+}
+
+model Veterinarian {
+  id                  String    @id @default(uuid())
+  usuarioId           String    @unique @map("usuario_id")
+  nomeClinica         String    @map("nome_clinica")
+  crmv                String
+  especialidade       Json      @default("[]")
+  endereco            Json
+  telefone            String
+  horarioAtendimento  Json      @map("horario_atendimento")
+  atendeEmergencia    Boolean   @default(false) @map("atende_emergencia")
+  atendeCastracao     Boolean   @default(false) @map("atende_castracao")
+  parceriaSocial      Boolean   @default(false) @map("parceria_social")
+  valorSocial         Float?    @map("valor_social")
+  status              StatusUsuario @default(ativo)
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  usuario             User      @relation(fields: [usuarioId], references: [id])
+  animais             Animal[]
+  castracoes          Castration[]
+
+  @@map("veterinarians")
+}
+
+model Donation {
+  id                  String        @id @default(uuid())
+  usuarioId           String        @map("usuario_id")
+  tipo                TipoDoacao
+  descricao           String?       @db.Text
+  quantidade          String?
+  valor               Float?
+  status              StatusDoacao  @default(pendente)
+  dataDoacao          DateTime      @default(now()) @map("data_doacao")
+  comprovanteUrl      String?       @map("comprovante_url")
+  observacoes         String?       @db.Text
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  usuario             User          @relation(fields: [usuarioId], references: [id])
+
+  @@map("donations")
+}
+
+model Campaign {
+  id                  String         @id @default(uuid())
+  titulo              String
+  descricao           String         @db.Text
+  tipo                TipoCampanha
+  dataInicio          DateTime       @map("data_inicio")
+  dataFim             DateTime       @map("data_fim")
+  local               Json
+  vagasTotal          Int?           @map("vagas_total")
+  vagasOcupadas       Int            @default(0) @map("vagas_ocupadas")
+  requisitos          Json?
+  documentosNecessarios Json?        @map("documentos_necessarios")
+  bairrosAtendidos    Json?          @map("bairros_atendidos")
+  fotoUrl             String?        @map("foto_url")
+  status              StatusCampanha @default(ativa)
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+
+  castracoes          Castration[]
+
+  @@map("campaigns")
+}
+
+model TemporaryHome {
+  id                  String              @id @default(uuid())
+  usuarioId           String              @unique @map("usuario_id")
+  endereco            Json
+  tipoMoradia         TipoMoradia         @map("tipo_moradia")
+  espacoDisponivel    String              @map("espaco_disponivel")
+  aceitaEspecies      Json                @map("aceita_especies")
+  aceitaPortes        Json                @map("aceita_portes")
+  tempoDisponivel     String              @map("tempo_disponivel")
+  experiencia         String?             @db.Text
+  temOutrosAnimais    Boolean             @map("tem_outros_animais")
+  status              StatusLarTemporario @default(disponivel)
+  animaisAtuais       Json                @default("[]") @map("animais_atuais")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
+
+  usuario             User                @relation(fields: [usuarioId], references: [id])
+
+  @@map("temporary_homes")
+}
+
+model ActivityLog {
+  id                  String    @id @default(uuid())
+  usuarioId           String    @map("usuario_id")
+  entidade            String
+  entidadeId          String    @map("entidade_id")
+  acao                String
+  dadosAnteriores     Json?     @map("dados_anteriores")
+  dadosNovos          Json?     @map("dados_novos")
+  ipAddress           String?   @map("ip_address")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  usuario             User      @relation(fields: [usuarioId], references: [id])
+
+  @@map("activity_logs")
+}
